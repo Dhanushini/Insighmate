@@ -1,15 +1,76 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Volume2, Info, CheckCircle, AlertCircle } from 'lucide-react';
+import { Camera, Volume2, Info, CheckCircle, AlertCircle, CameraOff } from 'lucide-react';
 
 const BarcodeScanner: React.FC = () => {
   const [isScanning, setIsScanning] = useState(false);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const [scannedProduct, setScannedProduct] = useState<any>(null);
   const [scanning, setScanning] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
+  const startCamera = async () => {
+    try {
+      setCameraError(null);
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment', // Use back camera if available
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        setIsCameraActive(true);
+        
+        // Announce camera activation
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance('Camera activated. Point at a barcode to scan.');
+          utterance.rate = 0.8;
+          speechSynthesis.speak(utterance);
+        }
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      setCameraError('Unable to access camera. Please ensure camera permissions are granted.');
+      
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance('Camera access denied. Please check your browser permissions.');
+        utterance.rate = 0.8;
+        speechSynthesis.speak(utterance);
+      }
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+    setIsScanning(false);
+    
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance('Camera stopped.');
+      utterance.rate = 0.8;
+      speechSynthesis.speak(utterance);
+    }
+  };
   const simulateBarcodeScan = () => {
+    if (!isCameraActive) {
+      setCameraError('Please start the camera first before scanning.');
+      return;
+    }
+    
     setScanning(true);
     setIsScanning(true);
+    setCameraError(null);
     
     // Simulate scanning process
     setTimeout(() => {
@@ -66,16 +127,40 @@ const BarcodeScanner: React.FC = () => {
           
           <div className="p-8">
             <div className="mb-8">
-              <div className="bg-gray-900 rounded-xl aspect-video flex items-center justify-center mb-6 relative overflow-hidden">
-                {isScanning ? (
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mb-4"></div>
-                    <p className="text-white text-lg">Scanning product...</p>
-                  </div>
+              <div className="bg-gray-900 rounded-xl aspect-video relative overflow-hidden mb-6">
+                {isCameraActive ? (
+                  <>
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover"
+                      aria-label="Camera feed for barcode scanning"
+                    />
+                    {isScanning && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                        <div className="text-center">
+                          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mb-4"></div>
+                          <p className="text-white text-lg">Scanning product...</p>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 ) : (
-                  <div className="text-center">
-                    <Camera className="w-16 h-16 text-gray-400 mb-4" />
-                    <p className="text-gray-400 text-lg">Camera view will appear here</p>
+                  <div className="w-full h-full flex items-center justify-center">
+                    {cameraError ? (
+                      <div className="text-center">
+                        <CameraOff className="w-16 h-16 text-red-400 mb-4" />
+                        <p className="text-red-400 text-lg">Camera Error</p>
+                        <p className="text-gray-400 text-sm mt-2">{cameraError}</p>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <Camera className="w-16 h-16 text-gray-400 mb-4" />
+                        <p className="text-gray-400 text-lg">Click "Start Camera" to begin</p>
+                      </div>
+                    )}
                   </div>
                 )}
                 
@@ -84,17 +169,48 @@ const BarcodeScanner: React.FC = () => {
                 )}
               </div>
               
-              <div className="flex justify-center">
-                <button
-                  onClick={simulateBarcodeScan}
-                  disabled={isScanning}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-colors focus:outline-none focus:ring-4 focus:ring-blue-300 flex items-center"
-                  aria-label="Start barcode scanning"
-                >
-                  <Camera className="w-6 h-6 mr-3" />
-                  {isScanning ? 'Scanning...' : 'Start Scanning'}
-                </button>
+              <div className="flex justify-center space-x-4">
+                {!isCameraActive ? (
+                  <button
+                    onClick={startCamera}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-colors focus:outline-none focus:ring-4 focus:ring-blue-300 flex items-center"
+                    aria-label="Start camera for barcode scanning"
+                  >
+                    <Camera className="w-6 h-6 mr-3" />
+                    Start Camera
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={simulateBarcodeScan}
+                      disabled={isScanning}
+                      className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-colors focus:outline-none focus:ring-4 focus:ring-green-300 flex items-center"
+                      aria-label="Start barcode scanning"
+                    >
+                      <Camera className="w-6 h-6 mr-3" />
+                      {isScanning ? 'Scanning...' : 'Scan Barcode'}
+                    </button>
+                    
+                    <button
+                      onClick={stopCamera}
+                      className="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-xl text-lg font-semibold transition-colors focus:outline-none focus:ring-4 focus:ring-red-300 flex items-center"
+                      aria-label="Stop camera"
+                    >
+                      <CameraOff className="w-6 h-6 mr-3" />
+                      Stop Camera
+                    </button>
+                  </>
+                )}
               </div>
+              
+              {cameraError && (
+                <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-700 text-center">{cameraError}</p>
+                  <p className="text-red-600 text-sm text-center mt-2">
+                    Make sure to allow camera access when prompted by your browser.
+                  </p>
+                </div>
+              )}
             </div>
 
             {scannedProduct && (
