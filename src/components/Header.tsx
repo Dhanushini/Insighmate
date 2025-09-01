@@ -1,5 +1,5 @@
 import React from 'react';
-import { Volume2, Navigation } from 'lucide-react';
+import { Volume2, Eye } from 'lucide-react';
 
 const Header: React.FC = () => {
   return (

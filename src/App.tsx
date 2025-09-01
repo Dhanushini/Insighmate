@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Users, Mic, DollarSign, MessageCircle, Settings, Volume2, Hand } from 'lucide-react';
+import { Camera, Users, Mic, DollarSign, MessageCircle, Settings, Volume2, Hand, Eye } from 'lucide-react';
 import Header from './components/Header';
 import Navigation from './components/Navigation';
 import BarcodeScanner from './components/BarcodeScanner';
@@ -10,6 +10,8 @@ import MoneyRecognition from './components/MoneyRecognition';
 import VolunteerGuidance from './components/VolunteerGuidance';
 import AppSettings from './components/AppSettings';
 import VoicePrompts from './components/VoicePrompts';
+import { DatabaseProvider } from './contexts/DatabaseContext';
+import { VoiceProvider } from './contexts/VoiceContext';
 
 function App() {
   const [activeModule, setActiveModule] = useState('home');
@@ -19,7 +21,7 @@ function App() {
     { id: 'barcode', name: 'Barcode Scanner', icon: Camera, description: 'Scan products and get audio descriptions' },
     { id: 'community', name: 'Community Forum', icon: MessageCircle, description: 'Connect with other users' },
     { id: 'voice', name: 'Voice Commands', icon: Mic, description: 'Voice interaction and control' },
-    { id: 'face', name: 'Face Recognition', icon: Users, description: 'Identify familiar contacts' },
+    { id: 'face', name: 'Face Recognition', icon: Eye, description: 'Identify familiar contacts' },
     { id: 'money', name: 'Money Recognition', icon: DollarSign, description: 'Identify currency and transactions' },
     { id: 'volunteer', name: 'Volunteer Help', icon: Hand, description: 'Get real-time assistance' },
     { id: 'settings', name: 'Settings', icon: Settings, description: 'Customize your experience' }
@@ -54,7 +56,7 @@ function App() {
             <div className="max-w-4xl mx-auto">
               <div className="text-center mb-12">
                 <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                  Welcome to AccessibilityFirst
+                  Welcome to Insightmate
                 </h1>
                 <p className="text-xl text-gray-700 leading-relaxed max-w-3xl mx-auto">
                   An integrated assistive solution designed to enhance accessibility, foster independence, 
@@ -90,18 +92,22 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
-      <Navigation 
-        modules={modules} 
-        activeModule={activeModule} 
-        setActiveModule={setActiveModule} 
-      />
-      <main className="flex-1" role="main">
-        {renderModule()}
-      </main>
-      <VoicePrompts isEnabled={isVoiceEnabled} activeModule={activeModule} />
-    </div>
+    <DatabaseProvider>
+      <VoiceProvider>
+        <div className="min-h-screen bg-gray-50 flex flex-col">
+          <Header />
+          <Navigation 
+            modules={modules} 
+            activeModule={activeModule} 
+            setActiveModule={setActiveModule} 
+          />
+          <main className="flex-1" role="main">
+            {renderModule()}
+          </main>
+          <VoicePrompts isEnabled={isVoiceEnabled} activeModule={activeModule} />
+        </div>
+      </VoiceProvider>
+    </DatabaseProvider>
   );
 }
 
