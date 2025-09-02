@@ -1,5 +1,5 @@
 import React from 'react';
-import { Volume2, Eye } from 'lucide-react';
+import { Volume2, Eye, Menu } from 'lucide-react';
 
 const Header: React.FC = () => {
   return (
@@ -7,8 +7,8 @@ const Header: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Navigation className="w-8 h-8 text-blue-600 mr-3" />
-            <h1 className="text-2xl font-bold text-gray-900">AccessibilityFirst</h1>
+            <Menu className="w-8 h-8 text-blue-600 mr-3" />
+            <h1 className="text-2xl font-bold text-gray-900">Insightmate</h1>
           </div>
           
           <div className="flex items-center space-x-4">
