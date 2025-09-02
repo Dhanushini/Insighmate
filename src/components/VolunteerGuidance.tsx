@@ -362,32 +362,6 @@ const VolunteerGuidance: React.FC = () => {
       </div>
     </div>
   );
-
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !currentRequest) return;
-    
-    try {
-      const message = await volunteerService.sendMessage(currentRequest.id, newMessage);
-      setChatMessages(prev => [...prev, message]);
-      setNewMessage('');
-    } catch (error) {
-      console.error('Error sending message:', error);
-      speak('Error sending message. Please try again.');
-    }
-  };
-
-  const getTimeAgo = (timestamp: string): string => {
-    const now = new Date();
-    const past = new Date(timestamp);
-    const diffMs = now.getTime() - past.getTime();
-    const diffMinutes = Math.floor(diffMs / (1000 * 60));
-    
-    if (diffMinutes < 1) return 'just now';
-    if (diffMinutes < 60) return `${diffMinutes} minutes ago`;
-    const diffHours = Math.floor(diffMinutes / 60);
-    if (diffHours < 24) return `${diffHours} hours ago`;
-    return `${Math.floor(diffHours / 24)} days ago`;
-  };
 };
 
 export default VolunteerGuidance;
