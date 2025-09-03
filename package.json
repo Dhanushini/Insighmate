@@ -3,14 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://username.github.io/Insighmate",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "build:github": "vite build --base=./",
+    "deploy": "npm run build:github && gh-pages -d dist"
   },
   "dependencies": {
     "@mediapipe/camera_utils": "^0.3.1675466862",
