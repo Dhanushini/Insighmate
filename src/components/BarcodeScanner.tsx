@@ -188,25 +188,134 @@ const BarcodeScanner: React.FC = () => {
       if (!scanningRef.current || !videoRef.current || !readerRef.current) return;
       
       try {
-        // Use ZXing to decode barcode from video
-        const result = await readerRef.current.decodeOnceFromVideoDevice(undefined, videoRef.current);
+        // Create a canvas to capture video frame
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
         
-        if (result) {
-          const barcodeText = result.getText();
+        if (context && videoRef.current.videoWidth > 0) {
+          canvas.width = videoRef.current.videoWidth;
+          canvas.height = videoRef.current.videoHeight;
+          context.drawImage(videoRef.current, 0, 0);
           
-          // Only process if it's a new barcode (prevent duplicate scans)
-          if (barcodeText !== lastScannedCode) {
-            setLastScannedCode(barcodeText);
-            await processBarcode(barcodeText);
+          // Get image data and try to decode
+          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+          const result = await readerRef.current.decodeFromImageData(imageData);
+        
+          if (result) {
+            const barcodeText = result.getText();
             
-            // Brief pause before next scan to prevent rapid duplicate scans
-            setTimeout(() => {
-              if (scanningRef.current) {
-                scanContinuously();
-              }
-            }, 2000);
-          } else {
-            // Continue scanning immediately if same barcode
+            // Only process if it's a new barcode (prevent duplicate scans)
+            if (barcodeText !== lastScannedCode) {
+              setLastScannedCode(barcodeText);
+              await processBarcode(barcodeText);
+              
+              // Brief pause before next scan to prevent rapid duplicate scans
+              setTimeout(() => {
+                if (scanningRef.current) {
+                  scanContinuously();
+                }
+              }, 2000);
+              return;
+            }
+          }
+        }
+        
+        // Continue scanning
+        setTimeout(() => {
+          if (scanningRef.current) {
+            scanContinuously();
+          }
+        }, 100);
+        
+      } catch (error) {
+        // No barcode found or other error, continue scanning
+        setTimeout(() => {
+          if (scanningRef.current) {
+            scanContinuously();
+          }
+        }, 100);
+      }
+    };
+    
+    // Start scanning after video is ready
+    const startWhenReady = () => {
+      if (videoRef.current && videoRef.current.videoWidth > 0) {
+        scanContinuously();
+      } else {
+        setTimeout(startWhenReady, 100);
+      }
+    };
+    
+    startWhenReady();
+  };
+
+  const processBarcode = async (barcode: string) => {
+    console.log('Barcode detected:', barcode);
+    
+    // Look up product in our database first
+    let product = productDatabase[barcode];
+    
+    if (!product) {
+      // Try to fetch from OpenFoodFacts API
+      try {
+        const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.status === 1 && data.product) {
+            product = {
+              name: data.product.product_name || "Unknown Product",
+              brand: data.product.brands || "Unknown Brand",
+              size: data.product.quantity || "N/A",
+              price: "Price not available",
+              description: data.product.generic_name || `Product with barcode ${barcode}`,
+              nutritionHighlights: data.product.nutrient_levels ? 
+                Object.keys(data.product.nutrient_levels).map(key => 
+                  `${key}: ${data.product.nutrient_levels[key]}`
+                ) : ["Information not available"],
+              allergens: data.product.allergens_tags || ["Check product packaging"],
+              category: data.product.categories || "General"
+            };
+          }
+        }
+      } catch (apiError) {
+        console.log('API lookup failed, using fallback');
+      }
+    }
+    
+    if (!product) {
+      // Fallback for unknown products
+      product = {
+        name: "Unknown Product",
+        brand: "Generic",
+        size: "N/A",
+        price: "Price not available",
+        description: `Product with barcode ${barcode}. Product details not found in database.`,
+        nutritionHighlights: ["Information not available"],
+        allergens: ["Check product packaging"],
+        category: "Unknown"
+      };
+    }
+    
+    setScannedProduct(product);
+    
+    // Add to scan history
+    setScanHistory(prev => [{
+      code: barcode,
+      product,
+      timestamp: new Date().toISOString()
+    }, ...prev.slice(0, 9)]); // Keep last 10 scans
+    
+    // Announce product details via speech synthesis
+    const announcement = `Product scanned: ${product.name} by ${product.brand}. Size: ${product.size}. Price: ${product.price}.`;
+    speak(announcement);
+    
+    // Provide haptic feedback if available
+    if ('vibrate' in navigator) {
+      navigator.vibrate([100, 50, 100]);
+    }
+  };
+
             setTimeout(() => {
               if (scanningRef.current) {
                 scanContinuously();

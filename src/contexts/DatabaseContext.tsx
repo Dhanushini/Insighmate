@@ -69,6 +69,11 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
+    // Load data from localStorage
+    const savedPosts = localStorage.getItem('insightmate_posts');
+    const savedContacts = localStorage.getItem('insightmate_contacts');
+    const savedUser = localStorage.getItem('insightmate_user');
+    
     // Initialize with mock data
     const mockUser: User = {
       id: 'user-1',
@@ -76,59 +81,75 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       email: 'alex@example.com',
       joinDate: new Date().toISOString()
     };
-    setCurrentUser(mockUser);
+    
+    if (savedUser) {
+      setCurrentUser(JSON.parse(savedUser));
+    } else {
+      setCurrentUser(mockUser);
+      localStorage.setItem('insightmate_user', JSON.stringify(mockUser));
+    }
 
-    const mockPosts: Post[] = [
-      {
-        id: '1',
-        author: 'Sarah M.',
-        title: 'Great grocery shopping app recommendation',
-        content: 'I found this amazing app that reads out product names when you scan them. Has anyone tried similar tools?',
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        likes: 12,
-        comments: [
-          {
-            id: 'c1',
-            author: 'Mike R.',
-            content: 'Yes! I use a similar app. It really helps with independent shopping.',
-            timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-            userId: 'user-2'
-          }
-        ],
-        category: 'Technology',
-        userId: 'user-2'
-      },
-      {
-        id: '2',
-        author: 'Michael R.',
-        title: 'Navigation tips for busy intersections',
-        content: 'I wanted to share some techniques I learned for safely crossing busy intersections using audio cues...',
-        timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-        likes: 8,
-        comments: [],
-        category: 'Daily Living',
-        userId: 'user-3'
-      }
-    ];
-    setPosts(mockPosts);
+    if (savedPosts) {
+      setPosts(JSON.parse(savedPosts));
+    } else {
+      const mockPosts: Post[] = [
+        {
+          id: '1',
+          author: 'Sarah M.',
+          title: 'Great grocery shopping app recommendation',
+          content: 'I found this amazing app that reads out product names when you scan them. Has anyone tried similar tools?',
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          likes: 12,
+          comments: [
+            {
+              id: 'c1',
+              author: 'Mike R.',
+              content: 'Yes! I use a similar app. It really helps with independent shopping.',
+              timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+              userId: 'user-2'
+            }
+          ],
+          category: 'Technology',
+          userId: 'user-2'
+        },
+        {
+          id: '2',
+          author: 'Michael R.',
+          title: 'Navigation tips for busy intersections',
+          content: 'I wanted to share some techniques I learned for safely crossing busy intersections using audio cues...',
+          timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+          likes: 8,
+          comments: [],
+          category: 'Daily Living',
+          userId: 'user-3'
+        }
+      ];
+      setPosts(mockPosts);
+      localStorage.setItem('insightmate_posts', JSON.stringify(mockPosts));
+    }
 
-    const mockContacts: Contact[] = [
-      {
-        id: '1',
-        name: 'John Smith',
-        relationship: 'Brother',
-        lastSeen: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        userId: 'user-1'
-      },
-      {
-        id: '2',
-        name: 'Maria Garcia',
-        relationship: 'Friend',
-        lastSeen: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        userId: 'user-1'
-      }
-    ];
-    setContacts(mockContacts);
+    if (savedContacts) {
+      setContacts(JSON.parse(savedContacts));
+    } else {
+      const mockContacts: Contact[] = [
+        {
+          id: '1',
+          name: 'John Smith',
+          relationship: 'Brother',
+          lastSeen: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          userId: 'user-1'
+        },
+        {
+          id: '2',
+          name: 'Maria Garcia',
+          relationship: 'Friend',
+          lastSeen: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          userId: 'user-1'
+        }
+      ];
+      setContacts(mockContacts);
+      localStorage.setItem('insightmate_contacts', JSON.stringify(mockContacts));
+    }
   }, []);
 
   const addPost = (postData: Omit<Post, 'id' | 'timestamp' | 'likes' | 'comments'>) => {
@@ -140,12 +161,17 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       comments: []
     };
     setPosts(prev => [newPost, ...prev]);
+    localStorage.setItem('insightmate_posts', JSON.stringify([newPost, ...posts]));
   };
 
   const likePost = (postId: string) => {
-    setPosts(prev => prev.map(post => 
-      post.id === postId ? { ...post, likes: post.likes + 1 } : post
-    ));
+    setPosts(prev => {
+      const updated = prev.map(post => 
+        post.id === postId ? { ...post, likes: post.likes + 1 } : post
+      );
+      localStorage.setItem('insightmate_posts', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const addComment = (postId: string, commentData: Omit<Comment, 'id' | 'timestamp'>) => {
@@ -155,11 +181,15 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       timestamp: new Date().toISOString()
     };
     
-    setPosts(prev => prev.map(post => 
-      post.id === postId 
-        ? { ...post, comments: [...post.comments, newComment] }
-        : post
-    ));
+    setPosts(prev => {
+      const updated = prev.map(post => 
+        post.id === postId 
+          ? { ...post, comments: [...post.comments, newComment] }
+          : post
+      );
+      localStorage.setItem('insightmate_posts', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const addContact = (contactData: Omit<Contact, 'id' | 'lastSeen'>) => {
@@ -169,14 +199,19 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       lastSeen: new Date().toISOString()
     };
     setContacts(prev => [...prev, newContact]);
+    localStorage.setItem('insightmate_contacts', JSON.stringify([...contacts, newContact]));
   };
 
   const updateContactLastSeen = (contactId: string) => {
-    setContacts(prev => prev.map(contact =>
-      contact.id === contactId 
-        ? { ...contact, lastSeen: new Date().toISOString() }
-        : contact
-    ));
+    setContacts(prev => {
+      const updated = prev.map(contact =>
+        contact.id === contactId 
+          ? { ...contact, lastSeen: new Date().toISOString() }
+          : contact
+      );
+      localStorage.setItem('insightmate_contacts', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   return (

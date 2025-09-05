@@ -49,16 +49,9 @@ class FaceRecognitionService {
     }
 
     try {
-      // Convert image to tensor
-      const tensor = tf.browser.fromPixels(imageElement)
-        .resizeNearestNeighbor([224, 224])
-        .expandDims(0)
-        .div(255.0);
-
-      // Simulate face detection (in real implementation, use MediaPipe or similar)
-      const faces = await this.simulateFaceDetection(tensor);
+      // Use a more realistic face detection approach
+      const faces = await this.detectFacesInImage(imageElement);
       
-      tensor.dispose();
       return faces;
     } catch (error) {
       console.error('Face detection error:', error);
@@ -66,9 +59,22 @@ class FaceRecognitionService {
     }
   }
 
-  private async simulateFaceDetection(tensor: tf.Tensor): Promise<any[]> {
-    // Simulate face detection with random probability
-    const hasFace = Math.random() > 0.3;
+  private async detectFacesInImage(imageElement: HTMLImageElement | HTMLVideoElement): Promise<any[]> {
+    // Create canvas to analyze image
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) return [];
+    
+    canvas.width = 320;
+    canvas.height = 240;
+    ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
+    
+    // Get image data for analysis
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    
+    // Simple face detection based on skin tone and facial features
+    const hasFace = this.detectSkinTone(imageData);
     
     if (hasFace) {
       // Generate a mock face descriptor
@@ -85,6 +91,30 @@ class FaceRecognitionService {
     }
     
     return [];
+  }
+
+  private detectSkinTone(imageData: ImageData): boolean {
+    const data = imageData.data;
+    let skinPixels = 0;
+    let totalPixels = 0;
+    
+    // Sample every 10th pixel for performance
+    for (let i = 0; i < data.length; i += 40) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      
+      // Simple skin tone detection
+      if (r > 95 && g > 40 && b > 20 && 
+          Math.max(r, g, b) - Math.min(r, g, b) > 15 &&
+          Math.abs(r - g) > 15 && r > g && r > b) {
+        skinPixels++;
+      }
+      totalPixels++;
+    }
+    
+    // If more than 5% of sampled pixels are skin tone, consider it a face
+    return (skinPixels / totalPixels) > 0.05;
   }
 
   private findBestMatch(descriptor: number[]): FaceDescriptor | null {

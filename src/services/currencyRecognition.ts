@@ -91,18 +91,18 @@ class CurrencyRecognitionService {
   }
 
   private async simulateCurrencyDetection(tensor: tf.Tensor): Promise<CurrencyResult[]> {
-    // Simulate detection with realistic probability
-    const hasCurrency = Math.random() > 0.4;
+    // More realistic currency detection
+    const hasCurrency = Math.random() > 0.6; // Lower probability for more realistic behavior
     
     if (!hasCurrency) return [];
 
     // Randomly select bill or coin
-    const isBill = Math.random() > 0.3;
+    const isBill = Math.random() > 0.5;
     const templates = isBill ? this.currencyTemplates.bills : this.currencyTemplates.coins;
     const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
     
     // Generate realistic confidence score
-    const confidence = Math.floor(85 + Math.random() * 14); // 85-99%
+    const confidence = Math.floor(75 + Math.random() * 20); // 75-95% for more realism
     
     return [{
       type: isBill ? 'bill' : 'coin',

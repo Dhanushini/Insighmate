@@ -80,21 +80,36 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = options.rate || 0.8;
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
+      utterance.onend = () => {
+        setIsSpeaking(false);
+      };
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+      };
       
       // Try to set preferred voice
       if (options.voice) {
-        const voices = speechSynthesis.getVoices();
-        const preferredVoice = voices.find(voice => 
-          voice.name.toLowerCase().includes(options.voice!.toLowerCase())
-        );
-        if (preferredVoice) {
-          utterance.voice = preferredVoice;
+        // Wait for voices to load
+        const setVoice = () => {
+          const voices = speechSynthesis.getVoices();
+          const preferredVoice = voices.find(voice => 
+            voice.name.toLowerCase().includes(options.voice!.toLowerCase())
+          );
+          if (preferredVoice) {
+            utterance.voice = preferredVoice;
+          }
+        };
+        
+        if (speechSynthesis.getVoices().length > 0) {
+          setVoice();
+        } else {
+          speechSynthesis.onvoiceschanged = setVoice;
         }
       }
       
       speechSynthesis.speak(utterance);
+    } else if (!isVoiceEnabled) {
+      console.log('Voice disabled:', text);
     }
   };
 
