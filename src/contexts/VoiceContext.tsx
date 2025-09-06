@@ -11,6 +11,7 @@ interface VoiceContextType {
   isVoiceEnabled: boolean;
   setIsVoiceEnabled: (enabled: boolean) => void;
   processVoiceCommand: (command: string, currentModule: string) => string;
+  lastSpeechError: string | null;
 }
 
 const VoiceContext = createContext<VoiceContextType | undefined>(undefined);
@@ -28,6 +29,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
+  const [lastSpeechError, setLastSpeechError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       };
       
       recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
+        setLastSpeechError(event.error);
         setIsListening(false);
       };
       
@@ -60,6 +62,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const startListening = () => {
     if (recognitionRef.current && isVoiceEnabled) {
+      setLastSpeechError(null);
       setIsListening(true);
       setTranscript('');
       recognitionRef.current.start();
@@ -195,7 +198,8 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       transcript,
       isVoiceEnabled,
       setIsVoiceEnabled,
-      processVoiceCommand
+      processVoiceCommand,
+      lastSpeechError
     }}>
       {children}
     </VoiceContext.Provider>
