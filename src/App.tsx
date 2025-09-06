@@ -53,34 +53,34 @@ function App() {
       default:
         return (
           <div className="p-8">
-            <div className="max-w-4xl mx-auto">
+            <div className="container-responsive">
               <div className="text-center mb-12">
-                <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                <h1 className="heading-responsive font-bold text-gray-900 mb-4">
                   Welcome to Insightmate
                 </h1>
-                <p className="text-xl text-gray-700 leading-relaxed max-w-3xl mx-auto">
+                <p className="text-responsive text-gray-700 leading-relaxed max-w-3xl mx-auto px-4">
                   An integrated assistive solution designed to enhance accessibility, foster independence, 
                   and improve quality of life for individuals with visual impairments.
                 </p>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid-responsive-lg mobile-stack tablet-grid-2 desktop-grid-3">
                 {modules.map((module) => {
                   const IconComponent = module.icon;
                   return (
                     <button
                       key={module.id}
                       onClick={() => setActiveModule(module.id)}
-                      className="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-left group border-2 border-transparent hover:border-blue-200 focus:border-blue-500 focus:outline-none"
+                      className="bg-white p-4 sm:p-6 lg:p-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-left group border-2 border-transparent hover:border-blue-200 focus:border-blue-500 focus:outline-none mobile-text-center sm:text-left"
                       aria-label={`Access ${module.name}: ${module.description}`}
                     >
-                      <div className="flex items-center mb-4">
-                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                      <div className="flex items-center mb-4 mobile-full justify-center sm:justify-start">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
                           <IconComponent className="w-6 h-6 text-blue-600" />
                         </div>
-                        <h3 className="text-xl font-semibold text-gray-900 ml-4">{module.name}</h3>
+                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 ml-0 sm:ml-4 mt-2 sm:mt-0">{module.name}</h3>
                       </div>
-                      <p className="text-gray-600 leading-relaxed">{module.description}</p>
+                      <p className="text-sm sm:text-base text-gray-600 leading-relaxed">{module.description}</p>
                     </button>
                   );
                 })}

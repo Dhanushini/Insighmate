@@ -86,16 +86,16 @@ const CommunityForum: React.FC = () => {
 
   return (
     <div className="p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="container-responsive">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6">
-            <h2 className="text-3xl font-bold mb-2">Community Forum</h2>
-            <p className="text-purple-100">Connect, share experiences, and support each other</p>
+            <h2 className="heading-responsive font-bold mb-2">Community Forum</h2>
+            <p className="text-responsive text-purple-100">Connect, share experiences, and support each other</p>
           </div>
           
-          <div className="p-8">
+          <div className="p-4 sm:p-6 lg:p-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
                 {categories.map((category) => (
                   <button
                     key={category}
@@ -103,7 +103,7 @@ const CommunityForum: React.FC = () => {
                       setSelectedCategory(category);
                       speak(`Viewing ${category} posts`);
                     }}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-purple-300 ${
+                    className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-purple-300 ${
                       selectedCategory === category
                         ? 'bg-purple-100 text-purple-700 border border-purple-300'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-transparent'
@@ -120,7 +120,7 @@ const CommunityForum: React.FC = () => {
                   setShowNewPost(!showNewPost);
                   speak(showNewPost ? 'Closing new post form' : 'Opening new post form');
                 }}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-4 focus:ring-purple-300 flex items-center"
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 sm:px-6 py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-4 focus:ring-purple-300 flex items-center mobile-full sm:w-auto justify-center"
                 aria-label="Create new post"
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -174,14 +174,14 @@ const CommunityForum: React.FC = () => {
                   <div className="flex space-x-4">
                     <button
                       onClick={handleCreatePost}
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors focus:outline-none focus:ring-4 focus:ring-purple-300"
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 sm:px-6 py-3 rounded-lg font-medium transition-colors focus:outline-none focus:ring-4 focus:ring-purple-300 flex-1 sm:flex-none"
                       aria-label="Publish post"
                     >
                       Publish Post
                     </button>
                     <button
                       onClick={() => setShowNewPost(false)}
-                      className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors focus:outline-none focus:ring-4 focus:ring-gray-300"
+                      className="bg-gray-600 hover:bg-gray-700 text-white px-4 sm:px-6 py-3 rounded-lg font-medium transition-colors focus:outline-none focus:ring-4 focus:ring-gray-300 flex-1 sm:flex-none"
                       aria-label="Cancel post creation"
                     >
                       Cancel

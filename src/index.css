@@ -2,6 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Responsive Grid System */
+@layer components {
+  .grid-responsive {
+    @apply grid gap-4;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+  
+  .grid-responsive-sm {
+    @apply grid gap-3;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  
+  .grid-responsive-lg {
+    @apply grid gap-6;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
+  
+  .container-responsive {
+    @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .text-responsive {
+    @apply text-sm sm:text-base lg:text-lg;
+  }
+  
+  .heading-responsive {
+    @apply text-xl sm:text-2xl lg:text-3xl xl:text-4xl;
+  }
+}
+
 /* Custom focus styles for better accessibility */
 @layer base {
   *:focus {
@@ -40,10 +70,55 @@
   }
 }
 
+/* Mobile-first responsive breakpoints */
+@media (max-width: 640px) {
+  .mobile-stack {
+    @apply flex-col space-y-2 space-x-0;
+  }
+  
+  .mobile-full {
+    @apply w-full;
+  }
+  
+  .mobile-text-center {
+    @apply text-center;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .tablet-grid-2 {
+    @apply grid-cols-2;
+  }
+  
+  .tablet-text-left {
+    @apply text-left;
+  }
+}
+
+/* Desktop optimizations */
+@media (min-width: 1025px) {
+  .desktop-grid-3 {
+    @apply grid-cols-3;
+  }
+  
+  .desktop-grid-4 {
+    @apply grid-cols-4;
+  }
+}
+
 /* Ensure all interactive elements are large enough for touch */
 button, input, select, textarea {
-  min-height: 44px;
-  min-width: 44px;
+  min-height: 48px; /* Increased for better mobile touch */
+  min-width: 48px;
+}
+
+/* Touch-friendly spacing on mobile */
+@media (max-width: 640px) {
+  button, input, select, textarea {
+    min-height: 52px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
 }
 
 /* Improve readability */

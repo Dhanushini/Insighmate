@@ -67,22 +67,22 @@ export default function BarcodeScanner() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="container-responsive p-4 sm:p-6">
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
           <div className="flex items-center gap-3">
             <Square className="w-8 h-8" />
             <div>
-              <h1 className="text-2xl font-bold">Barcode Scanner</h1>
-              <p className="text-blue-100">Scan products to get information</p>
+              <h1 className="heading-responsive font-bold">Barcode Scanner</h1>
+              <p className="text-responsive text-blue-100">Scan products to get information</p>
             </div>
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {/* Camera Section */}
           <div className="mb-6">
-            <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video">
+            <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video w-full">
               <video
                 ref={videoRef}
                 autoPlay
@@ -98,7 +98,7 @@ export default function BarcodeScanner() {
               {/* Scanning Overlay */}
               {isScanning && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="border-2 border-green-400 w-64 h-32 relative">
+                  <div className="border-2 border-green-400 w-48 h-24 sm:w-64 sm:h-32 relative">
                     <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-green-400"></div>
                     <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-green-400"></div>
                     <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-green-400"></div>
@@ -127,11 +127,11 @@ export default function BarcodeScanner() {
           </div>
 
           {/* Controls */}
-          <div className="flex gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
             {!isScanning ? (
               <button
                 onClick={startScanning}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors text-sm sm:text-base"
               >
                 <Camera className="w-5 h-5" />
                 Start Scanning
@@ -139,7 +139,7 @@ export default function BarcodeScanner() {
             ) : (
               <button
                 onClick={stopScanning}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 sm:px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors text-sm sm:text-base"
               >
                 <Square className="w-5 h-5" />
                 Stop Scanning
@@ -148,7 +148,7 @@ export default function BarcodeScanner() {
             
             <button
               onClick={simulateBarcodeScan}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors text-sm sm:text-base mobile-full"
             >
               <Zap className="w-5 h-5" />
               Test Scan
