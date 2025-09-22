@@ -80,6 +80,7 @@ const MoneyRecognition: React.FC = () => {
     
     scanningRef.current = true;
     setIsScanning(true);
+    speak('Starting currency detection. Point camera at money.');
     
     const detectCurrency = async () => {
       if (!scanningRef.current || !videoRef.current) return;
@@ -97,12 +98,13 @@ const MoneyRecognition: React.FC = () => {
           setRecognizedCurrency(newCurrency);
           
           // Add to total and scanned items
-          const value = parseFloat(currency.denomination.replace('$', ''));
+          const value = parseFloat(currency.denomination.replace('$', '').replace(',', ''));
           setTotalAmount(prev => prev + value);
           setScannedItems(prev => [...prev, newCurrency]);
           
+          // Enhanced voice feedback
           speak(
-            `${currency.type === 'bill' ? 'Bill' : 'Coin'} recognized: ${currency.denomination} ${currency.currency}. Confidence: ${currency.confidence} percent. Running total: ${(totalAmount + value).toFixed(2)} dollars.`
+            `${currency.type === 'bill' ? 'Bank note' : 'Coin'} detected: ${currency.denomination}. Confidence level: ${currency.confidence} percent. Adding to total. New running total: ${(totalAmount + value).toFixed(2)} dollars.`
           );
           
           // Pause briefly after detection
@@ -110,7 +112,7 @@ const MoneyRecognition: React.FC = () => {
             if (scanningRef.current) {
               detectCurrency();
             }
-          }, 2000);
+          }, 1500); // Shorter pause for better UX
           return;
         }
         
@@ -119,10 +121,11 @@ const MoneyRecognition: React.FC = () => {
           if (scanningRef.current) {
             detectCurrency();
           }
-        }, 300);
+        }, 200); // Faster scanning
         
       } catch (error) {
         console.error('Currency detection error:', error);
+        speak('Detection error occurred. Continuing scan.');
         setTimeout(() => {
           if (scanningRef.current) {
             detectCurrency();
@@ -135,8 +138,16 @@ const MoneyRecognition: React.FC = () => {
   };
 
   const speakTotal = () => {
+    if (scannedItems.length === 0) {
+      speak('No items scanned yet. Point camera at currency to start scanning.');
+      return;
+    }
+    
+    const billCount = scannedItems.filter(item => item.type === 'bill').length;
+    const coinCount = scannedItems.filter(item => item.type === 'coin').length;
+    
     speak(
-      `Total amount scanned: ${totalAmount.toFixed(2)} dollars. You have scanned ${scannedItems.length} items.`
+      `Total amount scanned: ${totalAmount.toFixed(2)} dollars. You have scanned ${scannedItems.length} items total. ${billCount} bills and ${coinCount} coins.`
     );
   };
 
@@ -149,12 +160,12 @@ const MoneyRecognition: React.FC = () => {
 
   const removeItem = (index: number) => {
     const item = scannedItems[index];
-    const value = parseFloat(item.denomination.replace('$', ''));
+    const value = parseFloat(item.denomination.replace('$', '').replace(',', ''));
     
     setScannedItems(prev => prev.filter((_, i) => i !== index));
     setTotalAmount(prev => prev - value);
     
-    speak(`Removed ${item.denomination} ${item.type}. New total: ${(totalAmount - value).toFixed(2)} dollars.`);
+    speak(`Removed ${item.denomination} ${item.type === 'bill' ? 'bill' : 'coin'}. New total: ${(totalAmount - value).toFixed(2)} dollars.`);
   };
 
   const getTimeAgo = (timestamp: string): string => {
@@ -193,9 +204,17 @@ const MoneyRecognition: React.FC = () => {
                       aria-label="Camera feed for currency recognition"
                     />
                     {isScanning && (
-                      <div className="absolute inset-4 border-2 border-green-400 rounded-lg animate-pulse">
-                        <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm">
-                          Analyzing currency...
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="border-4 border-green-400 w-64 h-40 relative rounded-lg">
+                          <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-green-400 rounded-tl-lg"></div>
+                          <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-green-400 rounded-tr-lg"></div>
+                          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-green-400 rounded-bl-lg"></div>
+                          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-green-400 rounded-br-lg"></div>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="bg-green-500 text-white px-4 py-2 rounded-full text-sm font-medium animate-pulse">
+                              Scanning Currency...
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -305,6 +324,18 @@ const MoneyRecognition: React.FC = () => {
                 >
                   <Volume2 className="w-5 h-5 mr-2" />
                   Speak Total
+                </button>
+                
+                <button
+                  onClick={() => {
+                    const itemsList = scannedItems.map(item => `${item.denomination} ${item.type}`).join(', ');
+                    speak(`Scanned items: ${itemsList || 'No items scanned yet'}`);
+                  }}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors focus:outline-none focus:ring-4 focus:ring-purple-300 flex items-center"
+                  aria-label="Speak list of scanned items"
+                >
+                  <Volume2 className="w-5 h-5 mr-2" />
+                  Speak Items
                 </button>
                 
                 <button

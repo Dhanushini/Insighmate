@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Hand, Users, Phone, Video, MessageSquare, Clock, CheckCircle, Star, Send } from 'lucide-react';
+import { Hand, Users, Phone, Video, MessageSquare, Clock, CheckCircle, Star, Send, MapPin, Globe, Award } from 'lucide-react';
 import { useVoice } from '../contexts/VoiceContext';
 import { volunteerService, Volunteer, HelpRequest, ChatMessage } from '../services/volunteerService';
 
@@ -9,12 +9,38 @@ const VolunteerGuidance: React.FC = () => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
+  const [selectedVolunteer, setSelectedVolunteer] = useState<Volunteer | null>(null);
   
   const { speak } = useVoice();
 
   useEffect(() => {
     // Load available volunteers
     setVolunteers(volunteerService.getAllVolunteers());
+    
+    // Set up real-time message handling
+    const handleNewMessage = (message: ChatMessage) => {
+      setChatMessages(prev => [...prev, message]);
+      if (message.senderId !== 'user-1') {
+        speak(`${message.senderName} says: ${message.content}`);
+      }
+    };
+    
+    const handleStatusChange = (request: HelpRequest) => {
+      setCurrentRequest(request);
+      if (request.status === 'connected' && request.volunteer) {
+        speak(`Connected to ${request.volunteer.name}. They specialize in ${request.volunteer.specialties.join(' and ')}.`);
+      } else if (request.status === 'completed') {
+        speak('Session completed successfully. Thank you for using volunteer guidance.');
+      }
+    };
+    
+    volunteerService.onMessage(handleNewMessage);
+    volunteerService.onStatusChange(handleStatusChange);
+    
+    return () => {
+      volunteerService.removeMessageHandler(handleNewMessage);
+      volunteerService.removeStatusHandler(handleStatusChange);
+    };
   }, []);
 
   const helpTypes = [
@@ -26,40 +52,12 @@ const VolunteerGuidance: React.FC = () => {
 
   const requestHelp = async (type: string) => {
     setIsConnecting(true);
-    speak(`Requesting ${type} assistance. Finding available volunteer.`);
+    speak(`Requesting ${type} assistance. Searching for the best available volunteer with expertise in ${type}.`);
     
     try {
       const request = await volunteerService.requestHelp(type as any);
       setCurrentRequest(request);
-      
-      // Simulate volunteer connection
-      setTimeout(() => {
-        const availableVolunteers = volunteerService.getAvailableVolunteers()
-          .filter(v => v.specialties.some(s => s.toLowerCase().includes(type) || s.toLowerCase().includes('general')));
-        
-        if (availableVolunteers.length > 0) {
-          const assignedVolunteer = availableVolunteers[0];
-          setCurrentRequest(prev => prev ? {
-            ...prev,
-            status: 'connected',
-            volunteer: assignedVolunteer
-          } : null);
-          
-          // Add initial volunteer message
-          const welcomeMessage: ChatMessage = {
-            id: `msg-${Date.now()}`,
-            senderId: assignedVolunteer.id,
-            senderName: assignedVolunteer.name,
-            content: `Hello! I'm ${assignedVolunteer.name} and I'm here to help you with ${type}. How can I assist you today?`,
-            timestamp: new Date().toISOString(),
-            type: 'text'
-          };
-          setChatMessages([welcomeMessage]);
-          
-          speak(`Connected to volunteer ${assignedVolunteer.name}. They specialize in ${assignedVolunteer.specialties.join(' and ')}. You can now communicate via voice or text.`);
-        }
-        setIsConnecting(false);
-      }, 2000 + Math.random() * 3000);
+      setIsConnecting(false);
       
     } catch (error) {
       console.error('Error requesting help:', error);
@@ -77,50 +75,25 @@ const VolunteerGuidance: React.FC = () => {
       senderName: 'You',
       content: newMessage,
       timestamp: new Date().toISOString(),
-      type: 'text'
+      type: 'text',
+      isRead: true
     };
     
     setChatMessages(prev => [...prev, userMessage]);
-    setNewMessage('');
     
-    // Simulate volunteer response
-    setTimeout(() => {
-      const responses = [
-        "I understand your situation. Let me help you with that step by step.",
-        "That's a great question. Based on your description, I recommend...",
-        "I can definitely assist you with this. Let's work through it together.",
-        "Thank you for providing those details. Here's what I suggest...",
-        "I'm here to help. Let me guide you through this process carefully."
-      ];
-      
-      const volunteerResponse: ChatMessage = {
-        id: `msg-${Date.now() + 1}`,
-        senderId: currentRequest.volunteer?.id || 'volunteer',
-        senderName: currentRequest.volunteer?.name || 'Volunteer',
-        content: responses[Math.floor(Math.random() * responses.length)],
-        timestamp: new Date().toISOString(),
-        type: 'text'
-      };
-      
-      setChatMessages(prev => [...prev, volunteerResponse]);
-      speak(`${volunteerResponse.senderName} says: ${volunteerResponse.content}`);
-    }, 1000 + Math.random() * 2000);
+    // Send to volunteer service
+    await volunteerService.sendMessage(currentRequest.id, newMessage);
+    setNewMessage('');
   };
 
   const endSession = async () => {
     if (currentRequest) {
       await volunteerService.endSession(currentRequest.id);
-      setCurrentRequest({
-        ...currentRequest,
-        status: 'completed'
-      });
       
       setTimeout(() => {
         setCurrentRequest(null);
         setChatMessages([]);
       }, 3000);
-      
-      speak('Session completed. Thank you for using volunteer guidance. Your feedback helps us improve.');
     }
   };
 
@@ -176,41 +149,83 @@ const VolunteerGuidance: React.FC = () => {
                     <Users className="w-5 h-5 mr-2" />
                     Available Volunteers ({volunteers.filter(v => v.isOnline).length} online)
                   </h3>
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {volunteers.map((volunteer) => (
-                      <div key={volunteer.id} className="bg-white rounded-lg p-4 border border-blue-200">
-                        <div className="flex items-center justify-between">
+                      <div 
+                        key={volunteer.id} 
+                        className={`bg-white rounded-lg p-4 border-2 transition-all cursor-pointer ${
+                          volunteer.isOnline 
+                            ? 'border-blue-200 hover:border-blue-400 hover:shadow-md' 
+                            : 'border-gray-200 opacity-60'
+                        } ${selectedVolunteer?.id === volunteer.id ? 'border-blue-500 shadow-lg' : ''}`}
+                        onClick={() => setSelectedVolunteer(selectedVolunteer?.id === volunteer.id ? null : volunteer)}
+                      >
+                        <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center">
                             {volunteer.avatar ? (
                               <img 
                                 src={volunteer.avatar} 
                                 alt={volunteer.name}
-                                className="w-12 h-12 rounded-full mr-4 object-cover"
+                                className="w-14 h-14 rounded-full mr-4 object-cover border-2 border-gray-200"
                               />
                             ) : (
-                              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
-                                <Users className="w-6 h-6 text-blue-600" />
+                              <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                                <Users className="w-7 h-7 text-blue-600" />
                               </div>
                             )}
                             <div>
                               <h4 className="font-semibold text-gray-900 flex items-center">
                                 {volunteer.name}
-                                <span className={`ml-2 w-3 h-3 rounded-full ${volunteer.isOnline ? 'bg-green-400' : 'bg-gray-400'}`}></span>
+                                <span className={`ml-2 w-3 h-3 rounded-full ${volunteer.isOnline ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></span>
                               </h4>
-                              <p className="text-sm text-gray-600">
-                                Specializes in: {volunteer.specialties.join(', ')}
-                              </p>
                               <div className="flex items-center text-sm text-gray-500">
-                                <Star className="w-3 h-3 text-yellow-400 mr-1" />
-                                {volunteer.rating}/5 • Response time: {volunteer.responseTime}
+                                <Star className="w-4 h-4 text-yellow-400 mr-1" />
+                                {volunteer.rating}/5
+                                <Clock className="w-4 h-4 text-gray-400 ml-3 mr-1" />
+                                {volunteer.responseTime}
                               </div>
                             </div>
                           </div>
                           <div className="text-right">
                             <span className={`text-sm font-medium ${volunteer.isOnline ? 'text-green-600' : 'text-gray-500'}`}>
-                              {volunteer.isOnline ? 'Online' : 'Offline'}
+                              volunteer.isOnline 
+                                ? 'text-green-700 bg-green-100' 
+                                : 'text-gray-500 bg-gray-100'
                             </span>
                           </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap gap-1">
+                            {volunteer.specialties.map((specialty, index) => (
+                              <span key={index} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                {specialty}
+                              </span>
+                            ))}
+                          </div>
+                          
+                          {selectedVolunteer?.id === volunteer.id && (
+                            <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                              {volunteer.location && (
+                                <div className="flex items-center text-sm text-gray-600">
+                                  <MapPin className="w-4 h-4 mr-2" />
+                                  {volunteer.location}
+                                </div>
+                              )}
+                              {volunteer.languages && (
+                                <div className="flex items-center text-sm text-gray-600">
+                                  <Globe className="w-4 h-4 mr-2" />
+                                  {volunteer.languages.join(', ')}
+                                </div>
+                              )}
+                              {volunteer.experience && (
+                                <div className="flex items-center text-sm text-gray-600">
+                                  <Award className="w-4 h-4 mr-2" />
+                                  {volunteer.experience}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -277,20 +292,38 @@ const VolunteerGuidance: React.FC = () => {
                     </div>
                     
                     <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-semibold text-gray-900">Chat with {currentRequest.volunteer.name}</h4>
+                        <div className="flex items-center text-sm text-gray-500">
+                          <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+                          Online
+                        </div>
+                      </div>
+                      
                       <div className="max-h-64 overflow-y-auto mb-4 space-y-3">
                         {chatMessages.map((message) => (
                           <div key={message.id} className={`flex ${message.senderId === 'user-1' ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                               message.senderId === 'user-1' 
                                 ? 'bg-orange-500 text-white' 
-                                : 'bg-gray-100 text-gray-900'
+                                : message.type === 'system' 
+                                  ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                                  : 'bg-gray-100 text-gray-900'
                             }`}>
-                              <p className="text-sm font-medium mb-1">{message.senderName}</p>
+                              {message.senderId !== 'user-1' && (
+                                <p className="text-sm font-medium mb-1">{message.senderName}</p>
+                              )}
                               <p>{message.content}</p>
                               <p className="text-xs opacity-75 mt-1">{getTimeAgo(message.timestamp)}</p>
                             </div>
                           </div>
                         ))}
+                        {chatMessages.length === 0 && (
+                          <div className="text-center text-gray-500 py-8">
+                            <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                            <p>Start a conversation with your volunteer</p>
+                          </div>
+                        )}
                       </div>
                       
                       <div className="flex space-x-3">
@@ -298,7 +331,7 @@ const VolunteerGuidance: React.FC = () => {
                           type="text"
                           value={newMessage}
                           onChange={(e) => setNewMessage(e.target.value)}
-                          placeholder="Type your message..."
+                          placeholder={`Message ${currentRequest.volunteer.name}...`}
                           className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-500"
                           aria-label="Type message to volunteer"
                           onKeyPress={(e) => {
@@ -309,6 +342,7 @@ const VolunteerGuidance: React.FC = () => {
                         />
                         <button
                           onClick={sendMessage}
+                          disabled={!newMessage.trim()}
                           className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-4 focus:ring-orange-300 flex items-center"
                           aria-label="Send message"
                         >
@@ -337,20 +371,26 @@ const VolunteerGuidance: React.FC = () => {
                     
                     <div className="bg-gray-50 rounded-lg p-4 mb-6">
                       <h4 className="font-semibold text-gray-900 mb-3">Rate Your Experience</h4>
+                      <p className="text-sm text-gray-600 mb-4">
+                        How was your session with {currentRequest.volunteer?.name}?
+                      </p>
                       <div className="flex justify-center space-x-2 mb-4">
                         {[1, 2, 3, 4, 5].map((rating) => (
                           <button
                             key={rating}
                             onClick={() => {
                               volunteerService.rateVolunteer(currentRequest.volunteer?.id || '', rating);
-                              speak(`Rated ${rating} stars. Thank you for your feedback.`);
+                              speak(`You rated ${rating} out of 5 stars. Thank you for your feedback. This helps us improve our service.`);
                             }}
-                            className="text-2xl hover:scale-110 transition-transform focus:outline-none focus:ring-2 focus:ring-yellow-300 rounded"
+                            className="text-3xl hover:scale-110 transition-transform focus:outline-none focus:ring-2 focus:ring-yellow-300 rounded p-1"
                             aria-label={`Rate ${rating} stars`}
                           >
-                            <Star className="w-8 h-8 text-yellow-400 hover:text-yellow-500" />
+                            <Star className="w-10 h-10 text-yellow-400 hover:text-yellow-500 hover:fill-current" />
                           </button>
                         ))}
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm text-gray-500">Tap a star to rate your experience</p>
                       </div>
                     </div>
                   </div>
